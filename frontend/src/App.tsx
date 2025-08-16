@@ -1,10 +1,24 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import FormPage from './pages/FormPage';
+import ProgressPage from './pages/ProgressPage';
+import ReportPage from './pages/ReportPage';
+import './App.css';
 
 function App() {
-  const [count, setCount] = useState(0)
+  return (
+    <Router>
+      <div className="App">
+        <Routes>
+          <Route path="/" element={<FormPage />} />
+          <Route path="/progress" element={<ProgressPage />} />
+          <Route path="/report" element={<ReportPage />} />
+        </Routes>
+      </div>
+    </Router>
+  );
+}
+
+export default App;
 
   return (
     <>
