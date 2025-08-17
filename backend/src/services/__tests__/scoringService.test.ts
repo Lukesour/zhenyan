@@ -122,15 +122,50 @@ describe('ScoringService', () => {
     it('should return correct score for Tier 1 universities', () => {
       expect(ScoringService.universityTierToScore('复旦大学')).toBe(96);
       expect(ScoringService.universityTierToScore('上海交通大学')).toBe(96);
+      expect(ScoringService.universityTierToScore('浙江大学')).toBe(96);
+      expect(ScoringService.universityTierToScore('中国科学技术大学')).toBe(96);
     });
 
     it('should return correct score for Tier 2 universities', () => {
       expect(ScoringService.universityTierToScore('中山大学')).toBe(89);
       expect(ScoringService.universityTierToScore('华南理工大学')).toBe(89);
+      expect(ScoringService.universityTierToScore('武汉大学')).toBe(89);
+      expect(ScoringService.universityTierToScore('华中科技大学')).toBe(89);
+    });
+
+    it('should return correct score for Tier 3 universities', () => {
+      expect(ScoringService.universityTierToScore('北京交通大学')).toBe(79);
+      expect(ScoringService.universityTierToScore('北京工业大学')).toBe(79);
+      expect(ScoringService.universityTierToScore('苏州大学')).toBe(79);
+      expect(ScoringService.universityTierToScore('福州大学')).toBe(79);
     });
 
     it('should return Tier 4 score for unknown universities', () => {
       expect(ScoringService.universityTierToScore('未知大学')).toBe(67);
+      expect(ScoringService.universityTierToScore('不存在的大学')).toBe(67);
+      expect(ScoringService.universityTierToScore('')).toBe(67);
+    });
+
+    it('should handle edge cases and special characters', () => {
+      expect(ScoringService.universityTierToScore('清华大学 ')).toBe(67); // 带空格
+      expect(ScoringService.universityTierToScore(' 北京大学')).toBe(67); // 带空格
+      expect(ScoringService.universityTierToScore('清华')).toBe(67); // 部分名称
+      expect(ScoringService.universityTierToScore('大学')).toBe(67); // 通用词
+    });
+
+    it('should verify all tier definitions are loaded correctly', () => {
+      // 验证所有等级的定义都被正确加载
+      const testUniversities = [
+        { name: '清华大学', expectedTier: 'Tier 0', expectedScore: 99 },
+        { name: '复旦大学', expectedTier: 'Tier 1', expectedScore: 96 },
+        { name: '中山大学', expectedTier: 'Tier 2', expectedScore: 89 },
+        { name: '北京交通大学', expectedTier: 'Tier 3', expectedScore: 79 }
+      ];
+
+      testUniversities.forEach(({ name, expectedTier, expectedScore }) => {
+        const score = ScoringService.universityTierToScore(name);
+        expect(score).toBe(expectedScore);
+      });
     });
   });
 
@@ -251,6 +286,32 @@ describe('ScoringService', () => {
       expect(scores.academic).toBeLessThanOrEqual(100);
       expect(scores.language).toBeLessThanOrEqual(100);
       expect(scores.university).toBeLessThanOrEqual(100);
+    });
+  });
+
+  describe('university tier data loading', () => {
+    it('should handle data loading gracefully', () => {
+      // 测试数据加载的健壮性
+      // 即使文件加载失败，系统也应该能正常工作
+      const unknownUniversity = '测试大学';
+      const score = ScoringService.universityTierToScore(unknownUniversity);
+      
+      // 应该返回Tier 4的分数
+      expect(score).toBe(67);
+      expect(score).toBeGreaterThan(0);
+      expect(score).toBeLessThanOrEqual(100);
+    });
+
+    it('should maintain consistent scoring across multiple calls', () => {
+      // 测试多次调用的结果一致性
+      const university = '清华大学';
+      const score1 = ScoringService.universityTierToScore(university);
+      const score2 = ScoringService.universityTierToScore(university);
+      const score3 = ScoringService.universityTierToScore(university);
+      
+      expect(score1).toBe(score2);
+      expect(score2).toBe(score3);
+      expect(score1).toBe(99); // Tier 0
     });
   });
 });

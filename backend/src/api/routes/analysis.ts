@@ -362,11 +362,11 @@ router.get('/test-similarity', async (req, res) => {
       }
     };
 
-    // 获取所有案例数据
-    const allCases = await SupabaseService.getAllProcessedCases();
+    // 使用向量搜索获取相似案例
+    const similarCases = await SupabaseService.findSimilarCases([0.1, 0.2, 0.3, 0.4, 0.5], 5);
     
-    // 计算相似度
-    const similarCases = SimilarityService.findTopSimilarCases(testUserBackground, allCases, 5);
+    // 获取所有案例数据用于权重计算（临时保留，后续可优化）
+    const allCases = await SupabaseService.getAllProcessedCases();
     
     // 获取权重配置
     const weights = SimilarityService.getWeights();
