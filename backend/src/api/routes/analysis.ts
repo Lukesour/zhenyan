@@ -1,5 +1,8 @@
 import { Router } from 'express';
 import { AnalysisReport } from '../../types';
+import SupabaseService from '../../services/supabaseService';
+import ScoringService from '../../services/scoringService';
+import SimilarityService, { ProcessedCase } from '../../utils/similarity';
 
 const router = Router();
 
@@ -94,6 +97,160 @@ const mockReport: AnalysisReport = {
 // POST /api/analyze - 分析用户背景
 router.post('/analyze', (req, res) => {
   res.status(200).json(mockReport);
+});
+
+// GET /api/test-supabase - 测试 Supabase 连接
+router.get('/test-supabase', async (req, res) => {
+  try {
+    const cases = await SupabaseService.testConnection();
+    res.status(200).json({
+      success: true,
+      message: 'Supabase connection successful',
+      data: cases,
+      count: cases.length
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Supabase connection failed',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// GET /api/test-scoring - 测试评分服务
+router.get('/test-scoring', (req, res) => {
+  try {
+    // 测试数据
+    const testUserBackground = {
+      academic: {
+        university: '清华大学',
+        universityTier: 'Tier 0',
+        major: '计算机科学',
+        majorCategory: 'CS',
+        gpa: 3.8,
+        gpaScale: 4.0 as const,
+        graduationYear: 2024
+      },
+      language: {
+        type: 'TOEFL' as const,
+        total: 100,
+        reading: 25,
+        listening: 25,
+        speaking: 25,
+        writing: 25
+      },
+      standardTests: {
+        gre: { total: 320, writing: 4.0 }
+      },
+      applicationIntent: {
+        countries: ['美国'],
+        majors: ['计算机科学'],
+        degree: 'Master' as const
+      },
+      experience: {
+        research: [],
+        internship: [],
+        competition: [],
+        others: []
+      }
+    };
+
+    const scores = ScoringService.calculateRadarChartScores(testUserBackground);
+    
+    res.status(200).json({
+      success: true,
+      message: 'Scoring service test successful',
+      testData: testUserBackground,
+      scores: scores,
+      details: {
+        gpaScore: ScoringService.gpaToScore(testUserBackground.academic.gpa, testUserBackground.academic.gpaScale),
+        universityScore: ScoringService.universityTierToScore(testUserBackground.academic.university),
+        languageScore: ScoringService.languageToScore(testUserBackground.language),
+        standardTestScore: ScoringService.calculateStandardTestScore(testUserBackground.standardTests)
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Scoring service test failed',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// GET /api/test-similarity - 测试相似度计算服务
+router.get('/test-similarity', async (req, res) => {
+  try {
+    // 测试用户背景
+    const testUserBackground = {
+      academic: {
+        university: '清华大学',
+        universityTier: 'Tier 0',
+        major: '计算机科学',
+        majorCategory: 'CS',
+        gpa: 3.8,
+        gpaScale: 4.0 as const,
+        graduationYear: 2024
+      },
+      language: {
+        type: 'TOEFL' as const,
+        total: 100,
+        reading: 25,
+        listening: 25,
+        speaking: 25,
+        writing: 25
+      },
+      standardTests: {
+        gre: { total: 320, writing: 4.0 }
+      },
+      applicationIntent: {
+        countries: ['美国'],
+        majors: ['计算机科学'],
+        degree: 'Master' as const
+      },
+      experience: {
+        research: [
+          { title: '机器学习项目', role: '研究员', description: '深度学习算法研究' }
+        ],
+        internship: [
+          { company: '腾讯', position: '算法工程师', description: '推荐系统开发' }
+        ],
+        competition: [],
+        others: []
+      }
+    };
+
+    // 获取所有案例数据
+    const allCases = await SupabaseService.getAllProcessedCases();
+    
+    // 计算相似度
+    const similarCases = SimilarityService.findTopSimilarCases(testUserBackground, allCases, 5);
+    
+    // 获取权重配置
+    const weights = SimilarityService.getWeights();
+    
+    res.status(200).json({
+      success: true,
+      message: 'Similarity service test successful',
+      testData: testUserBackground,
+      totalCases: allCases.length,
+      similarCases: similarCases,
+      weights: weights,
+      details: {
+        // 计算一个具体案例的详细相似度
+        sampleCaseSimilarity: allCases.length > 0 ? 
+          SimilarityService.calculateOverallSimilarity(testUserBackground, allCases[0]) : null,
+        sampleCase: allCases.length > 0 ? allCases[0] : null
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Similarity service test failed',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
 });
 
 export default router;
