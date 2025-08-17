@@ -1,55 +1,15 @@
 import React, { useEffect } from 'react';
 import { Tabs, Spin, Alert } from 'antd';
 import { useAppContext } from '../contexts/AppContext';
-import { fetchAnalysisReport } from '../api/analysisAPI';
 import RadarChart from '../components/report/RadarChart';
 
 const { TabPane } = Tabs;
 
 const ReportPage: React.FC = () => {
-  const { isLoading, error, analysisReport, setIsLoading, setError, setAnalysisReport } = useAppContext();
+  const { isLoading, error, analysisReport } = useAppContext();
 
-  useEffect(() => {
-    const loadAnalysisReport = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-        // 创建一个模拟的 UserBackground 用于测试
-        const mockUserBackground = {
-          academic: {
-            university: "清华大学",
-            universityTier: "Tier 0",
-            major: "计算机科学与技术",
-            majorCategory: "CS",
-            gpa: 3.8,
-            graduationYear: 2024
-          },
-          applicationIntent: {
-            countries: ["美国"],
-            majors: ["计算机科学"],
-            degree: "Master"
-          },
-          experience: {
-            research: [],
-            internship: [],
-            competition: [],
-            others: []
-          }
-        };
-        
-        const report = await fetchAnalysisReport(mockUserBackground);
-        setAnalysisReport(report);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : '加载失败');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadAnalysisReport();
-  }, [setIsLoading, setError, setAnalysisReport]);
-
-  if (isLoading) {
+  // 如果没有数据，显示加载状态
+  if (!analysisReport) {
     return (
       <div style={{ padding: '20px', textAlign: 'center' }}>
         <Spin size="large" />
