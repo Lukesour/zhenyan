@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import analysisRoutes from './api/routes/analysis';
 import SupabaseService from './services/supabaseService';
+import { GemmaService } from './services/gemmaService';
 
 // 加载环境变量
 dotenv.config();
@@ -17,6 +18,24 @@ app.use(express.json());
 // 健康检查端点
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok' });
+});
+
+// 测试 Gemma 3 API 端点
+app.get('/test-gemma', async (req, res) => {
+  try {
+    const isConnected = await GemmaService.testConnection();
+    res.status(200).json({ 
+      status: 'success', 
+      gemmaConnected: isConnected,
+      message: isConnected ? 'Gemma 3 API connection successful' : 'Gemma 3 API connection failed'
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      status: 'error', 
+      gemmaConnected: false,
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
 });
 
 // API路由

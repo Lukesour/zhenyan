@@ -8,6 +8,10 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "test:supabase": "node test-supabase.js",
+    "test:gemma": "node test-gemma.js",
+    "test:gemma-integration": "node test-gemma-integration.js",
+    "test:text-generation": "node test-text-generation.js",
+    "test:real-report": "node test-real-report.js",
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js"
