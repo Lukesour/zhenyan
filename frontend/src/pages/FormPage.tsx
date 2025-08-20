@@ -18,9 +18,7 @@ const FormPage: React.FC = () => {
       const userBackground: UserBackground = {
         academic: {
           university: values.academic.university,
-          universityTier: values.academic.universityTier,
           major: values.academic.major,
-          majorCategory: values.academic.majorCategory,
           gpa: values.academic.gpa,
           gpaScale: values.academic.gpaScale,
           graduationYear: values.academic.graduationYear
@@ -107,21 +105,7 @@ const FormPage: React.FC = () => {
                 />
               </Form.Item>
             </Col>
-            <Col span={12}>
-              <Form.Item
-                label="院校等级"
-                name={['academic', 'universityTier']}
-                rules={[{ required: true, message: '请选择院校等级' }]}
-              >
-                <Select placeholder="请选择院校等级">
-                  <Option value="Tier 0">Tier 0 (清北复交等)</Option>
-                  <Option value="Tier 1">Tier 1 (985高校)</Option>
-                  <Option value="Tier 2">Tier 2 (211高校)</Option>
-                  <Option value="Tier 3">Tier 3 (普通一本)</Option>
-                  <Option value="Tier 4">Tier 4 (其他)</Option>
-                </Select>
-              </Form.Item>
-            </Col>
+            {/* 移除院校等级输入，后端自动匹配 */}
           </Row>
 
           <Row gutter={16}>
@@ -140,20 +124,7 @@ const FormPage: React.FC = () => {
                 />
               </Form.Item>
             </Col>
-            <Col span={12}>
-              <Form.Item
-                label="专业大类"
-                name={['academic', 'majorCategory']}
-                rules={[{ required: true, message: '请选择专业大类' }]}
-              >
-                <Select placeholder="请选择专业大类">
-                  <Option value="CS">计算机科学</Option>
-                  <Option value="EE">电气电子</Option>
-                  <Option value="Business">商科</Option>
-                  <Option value="Arts">艺术</Option>
-                </Select>
-              </Form.Item>
-            </Col>
+            {/* 移除专业大类输入，前端不再提供 */}
           </Row>
 
           <Row gutter={16}>
@@ -211,11 +182,11 @@ const FormPage: React.FC = () => {
         </Card>
 
         {/* 语言成绩 */}
-        <Card title="语言成绩" style={{ marginBottom: '20px' }}>
+        <Card title="语言成绩 (选填)" style={{ marginBottom: '20px' }}>
           <Row gutter={16}>
             <Col span={12}>
               <Form.Item
-                label="考试类型"
+                label="考试类型 (选填)"
                 name={['language', 'type']}
               >
                 <Select placeholder="请选择考试类型" allowClear>
@@ -226,7 +197,7 @@ const FormPage: React.FC = () => {
             </Col>
             <Col span={12}>
               <Form.Item
-                label="总分"
+                label="总分 (选填)"
                 name={['language', 'total']}
               >
                 <InputNumber
@@ -242,7 +213,7 @@ const FormPage: React.FC = () => {
           <Row gutter={16}>
             <Col span={6}>
               <Form.Item
-                label="阅读"
+                label="阅读 (选填)"
                 name={['language', 'reading']}
               >
                 <InputNumber
@@ -255,7 +226,7 @@ const FormPage: React.FC = () => {
             </Col>
             <Col span={6}>
               <Form.Item
-                label="听力"
+                label="听力 (选填)"
                 name={['language', 'listening']}
               >
                 <InputNumber
@@ -268,7 +239,7 @@ const FormPage: React.FC = () => {
             </Col>
             <Col span={6}>
               <Form.Item
-                label="口语"
+                label="口语 (选填)"
                 name={['language', 'speaking']}
               >
                 <InputNumber
@@ -281,7 +252,7 @@ const FormPage: React.FC = () => {
             </Col>
             <Col span={6}>
               <Form.Item
-                label="写作"
+                label="写作 (选填)"
                 name={['language', 'writing']}
               >
                 <InputNumber
@@ -296,11 +267,11 @@ const FormPage: React.FC = () => {
         </Card>
 
         {/* 标准化考试 */}
-        <Card title="标准化考试" style={{ marginBottom: '20px' }}>
+        <Card title="标准化考试 (选填)" style={{ marginBottom: '20px' }}>
           <Row gutter={16}>
             <Col span={12}>
               <Form.Item
-                label="GRE总分"
+                label="GRE总分 (选填)"
                 name={['standardTests', 'gre', 'total']}
               >
                 <InputNumber
@@ -313,7 +284,7 @@ const FormPage: React.FC = () => {
             </Col>
             <Col span={12}>
               <Form.Item
-                label="GRE写作"
+                label="GRE写作 (选填)"
                 name={['standardTests', 'gre', 'writing']}
               >
                 <InputNumber
@@ -330,7 +301,7 @@ const FormPage: React.FC = () => {
           <Row gutter={16}>
             <Col span={12}>
               <Form.Item
-                label="GMAT总分"
+                label="GMAT总分 (选填)"
                 name={['standardTests', 'gmat', 'total']}
               >
                 <InputNumber
@@ -411,7 +382,7 @@ const FormPage: React.FC = () => {
         </Card>
 
         {/* 科研经历 */}
-        <Card title="科研经历" style={{ marginBottom: '20px' }}>
+        <Card title="科研经历 (选填)" style={{ marginBottom: '20px' }}>
           <Form.List name={['experience', 'research']}>
             {(fields, { add, remove }) => (
               <>
@@ -423,7 +394,7 @@ const FormPage: React.FC = () => {
                           {...restField}
                           name={[name, 'title']}
                           label="项目标题"
-                          rules={[{ required: true, message: '请输入项目标题' }]}
+                          rules={[]}
                         >
                           <Input placeholder="请输入科研项目标题" />
                         </Form.Item>
@@ -435,7 +406,7 @@ const FormPage: React.FC = () => {
                           {...restField}
                           name={[name, 'role']}
                           label="担任角色"
-                          rules={[{ required: true, message: '请输入担任角色' }]}
+                          rules={[]}
                         >
                           <Input placeholder="如：项目负责人、研究员等" />
                         </Form.Item>
@@ -445,7 +416,7 @@ const FormPage: React.FC = () => {
                           {...restField}
                           name={[name, 'description']}
                           label="项目描述"
-                          rules={[{ required: true, message: '请输入项目描述' }]}
+                          rules={[]}
                         >
                           <Input.TextArea
                             placeholder="请详细描述项目内容、方法、成果等"
@@ -481,7 +452,7 @@ const FormPage: React.FC = () => {
         </Card>
 
         {/* 实习经历 */}
-        <Card title="实习经历" style={{ marginBottom: '20px' }}>
+        <Card title="实习经历 (选填)" style={{ marginBottom: '20px' }}>
           <Form.List name={['experience', 'internship']}>
             {(fields, { add, remove }) => (
               <>
@@ -493,7 +464,7 @@ const FormPage: React.FC = () => {
                           {...restField}
                           name={[name, 'company']}
                           label="公司名称"
-                          rules={[{ required: true, message: '请输入公司名称' }]}
+                          rules={[]}
                         >
                           <Input placeholder="请输入公司名称" />
                         </Form.Item>
@@ -503,7 +474,7 @@ const FormPage: React.FC = () => {
                           {...restField}
                           name={[name, 'position']}
                           label="职位"
-                          rules={[{ required: true, message: '请输入职位' }]}
+                          rules={[]}
                         >
                           <Input placeholder="请输入实习职位" />
                         </Form.Item>
@@ -515,7 +486,7 @@ const FormPage: React.FC = () => {
                           {...restField}
                           name={[name, 'description']}
                           label="工作描述"
-                          rules={[{ required: true, message: '请输入工作描述' }]}
+                          rules={[]}
                         >
                           <Input.TextArea
                             placeholder="请详细描述工作内容、技能应用、成果等"
@@ -551,7 +522,7 @@ const FormPage: React.FC = () => {
         </Card>
 
         {/* 竞赛经历 */}
-        <Card title="竞赛经历" style={{ marginBottom: '20px' }}>
+        <Card title="竞赛经历 (选填)" style={{ marginBottom: '20px' }}>
           <Form.List name={['experience', 'competition']}>
             {(fields, { add, remove }) => (
               <>
@@ -563,7 +534,7 @@ const FormPage: React.FC = () => {
                           {...restField}
                           name={[name, 'name']}
                           label="竞赛名称"
-                          rules={[{ required: true, message: '请输入竞赛名称' }]}
+                          rules={[]}
                         >
                           <Input placeholder="请输入竞赛名称" />
                         </Form.Item>
@@ -573,7 +544,7 @@ const FormPage: React.FC = () => {
                           {...restField}
                           name={[name, 'award']}
                           label="获奖情况"
-                          rules={[{ required: true, message: '请输入获奖情况' }]}
+                          rules={[]}
                         >
                           <Input placeholder="如：一等奖、二等奖等" />
                         </Form.Item>
@@ -585,7 +556,7 @@ const FormPage: React.FC = () => {
                           {...restField}
                           name={[name, 'role']}
                           label="担任角色"
-                          rules={[{ required: true, message: '请输入担任角色' }]}
+                          rules={[]}
                         >
                           <Input placeholder="如：队长、队员等" />
                         </Form.Item>
@@ -595,7 +566,7 @@ const FormPage: React.FC = () => {
                           {...restField}
                           name={[name, 'description']}
                           label="竞赛描述"
-                          rules={[{ required: true, message: '请输入竞赛描述' }]}
+                          rules={[]}
                         >
                           <Input.TextArea
                             placeholder="请详细描述竞赛内容、过程、收获等"
@@ -631,7 +602,7 @@ const FormPage: React.FC = () => {
         </Card>
 
         {/* 其他经历 */}
-        <Card title="其他经历" style={{ marginBottom: '20px' }}>
+        <Card title="其他经历 (选填)" style={{ marginBottom: '20px' }}>
           <Form.List name={['experience', 'others']}>
             {(fields, { add, remove }) => (
               <>
@@ -643,7 +614,7 @@ const FormPage: React.FC = () => {
                           {...restField}
                           name={[name, 'name']}
                           label="经历名称"
-                          rules={[{ required: true, message: '请输入经历名称' }]}
+                          rules={[]}
                         >
                           <Input placeholder="请输入经历名称" />
                         </Form.Item>
@@ -653,7 +624,7 @@ const FormPage: React.FC = () => {
                           {...restField}
                           name={[name, 'role']}
                           label="担任角色"
-                          rules={[{ required: true, message: '请输入担任角色' }]}
+                          rules={[]}
                         >
                           <Input placeholder="请输入担任角色" />
                         </Form.Item>
@@ -665,7 +636,7 @@ const FormPage: React.FC = () => {
                           {...restField}
                           name={[name, 'description']}
                           label="经历描述"
-                          rules={[{ required: true, message: '请输入经历描述' }]}
+                          rules={[]}
                         >
                           <Input.TextArea
                             placeholder="请详细描述经历内容、过程、收获等"

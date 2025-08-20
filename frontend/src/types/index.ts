@@ -4,9 +4,9 @@
 export interface UserBackground {
   academic: {
     university: string;
-    universityTier: string; // Tier 0-4, 由后端根据university填充
+    universityTier?: string; // Tier 0-4, 由后端根据university填充
     major: string;
-    majorCategory: string; // 专业大类, 由后端填充
+    majorCategory?: string; // 专业大类, 由后端填充
     gpa: number;
     gpaScale: 4.0 | 5.0 | 100;
     graduationYear: number;
