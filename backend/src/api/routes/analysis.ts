@@ -140,12 +140,7 @@ router.post('/analyze', async (req, res) => {
     
     // 3. 生成 AI 文本内容
     console.log('🤖 生成 AI 文本内容...');
-    const [strengths, weaknesses, summary, strategySummary] = await Promise.allSettled([
-      GemmaService.generateStrengths(userBackground),
-      GemmaService.generateWeaknesses(userBackground),
-      GemmaService.generateSummary(userBackground),
-      GemmaService.generateStrategySummary(userBackground)
-    ]);
+    const texts = await GemmaService.generateAllTextAnalyses(userBackground);
     
     // 4. 生成学校推荐
     console.log('🎓 生成学校推荐...');
@@ -195,12 +190,9 @@ router.post('/analyze', async (req, res) => {
     const analysisReport: AnalysisReport = {
       competitiveness: {
         radarChart: radarChartScores,
-        strengths: strengths.status === 'fulfilled' ? strengths.value : 
-          `基于您的背景分析，您具备申请目标院校的基本条件。`,
-        weaknesses: weaknesses.status === 'fulfilled' ? weaknesses.value :
-          `在语言成绩和标准化考试方面还有提升空间，建议重点关注。`,
-        summary: summary.status === 'fulfilled' ? summary.value :
-          `总体而言，您具备申请目标院校的基本条件，但在某些方面还有提升空间。`
+        strengths: texts.strengths,
+        weaknesses: texts.weaknesses,
+        summary: texts.summary
       },
       schoolRecommendations: schoolRecommendations,
       similarCases: detailedSimilarCases,
@@ -222,8 +214,7 @@ router.post('/analyze', async (req, res) => {
             goal: "完善个人陈述、简历等申请材料，联系推荐人"
           }
         ],
-        strategySummary: strategySummary.status === 'fulfilled' ? strategySummary.value :
-          "建议您按照时间轴逐步提升各项指标，重点关注语言成绩和科研经历的提升。"
+        strategySummary: texts.strategySummary
       }
     };
     
@@ -362,11 +353,13 @@ router.get('/test-similarity', async (req, res) => {
       }
     };
 
-    // 使用向量搜索获取相似案例
-    const similarCases = await SupabaseService.findSimilarCases([0.1, 0.2, 0.3, 0.4, 0.5], 5);
-    
-    // 获取所有案例数据用于权重计算（临时保留，后续可优化）
+    // 获取所有案例数据 - 使用新的向量搜索API
+    // 注意：这里暂时使用getAllProcessedCases进行测试，因为向量搜索需要用户向量
+    // 在实际的analyze端点中，将使用findSimilarCases(userVector, topN)
     const allCases = await SupabaseService.getAllProcessedCases();
+    
+    // 计算相似度
+    const similarCases = SimilarityService.findTopSimilarCases(testUserBackground, allCases, 5);
     
     // 获取权重配置
     const weights = SimilarityService.getWeights();

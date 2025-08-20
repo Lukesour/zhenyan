@@ -5,6 +5,9 @@ const GEMMA_API_KEY = process.env.GEMMA_API_KEY || 'AIzaSyCoFTfqOUr9K8Lg4v-mSR_O
 const GEMMA_MODEL = process.env.GEMMA_MODEL || 'gemma-3-27b';
 const GEMMA_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemma-3-27b:generateContent';
 
+// 向量嵌入API配置
+const EMBEDDING_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/embedding-001:embedText';
+
 export class GemmaService {
   /**
    * 调用 Gemma 3 API 获取 AI 评分
@@ -76,6 +79,139 @@ ${prompt}
       console.error('❌ Gemma API connection failed:', error);
       return false;
     }
+  }
+
+  /**
+   * 将用户背景转换为向量表示
+   * @param background 用户背景信息
+   * @returns 向量数组
+   */
+  static async generateVectorEmbedding(background: UserBackground): Promise<number[]> {
+    try {
+      // 构建用于向量化的文本描述
+      const textDescription = this.buildBackgroundDescription(background);
+      
+      // 调用嵌入API
+      const response = await fetch(EMBEDDING_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${GEMMA_API_KEY}`
+        },
+        body: JSON.stringify({
+          text: textDescription
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Embedding API error: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json() as any;
+      const embedding = data.embedding?.values;
+      
+      if (!embedding || !Array.isArray(embedding)) {
+        throw new Error('Invalid embedding response format');
+      }
+
+      return embedding;
+
+    } catch (error) {
+      console.error('Error generating vector embedding:', error);
+      // 如果向量生成失败，返回一个基于数值特征的简单向量
+      return this.generateFallbackVector(background);
+    }
+  }
+
+  /**
+   * 构建用户背景的文本描述，用于向量化
+   * @param background 用户背景信息
+   * @returns 文本描述
+   */
+  private static buildBackgroundDescription(background: UserBackground): string {
+    const parts = [
+      // 学术背景
+      `Academic: ${background.academic.university} (${background.academic.universityTier}), ${background.academic.major}, GPA ${background.academic.gpa}/${background.academic.gpaScale}, graduated ${background.academic.graduationYear}`,
+      
+      // 语言成绩
+      background.language ? `Language: ${background.language.type} ${background.language.total} (R:${background.language.reading || 0} L:${background.language.listening || 0} S:${background.language.speaking || 0} W:${background.language.writing || 0})` : 'Language: Not provided',
+      
+      // 标准化考试
+      background.standardTests?.gre ? `GRE: ${background.standardTests.gre.total} (W:${background.standardTests.gre.writing || 0})` : '',
+      background.standardTests?.gmat ? `GMAT: ${background.standardTests.gmat.total}` : '',
+      
+      // 申请意向
+      `Target: ${background.applicationIntent.degree} in ${background.applicationIntent.majors.join(', ')} at ${background.applicationIntent.countries.join(', ')}`,
+      
+      // 经历
+      `Research: ${background.experience.research.length} projects`,
+      `Internship: ${background.experience.internship.length} experiences`,
+      `Competition: ${background.experience.competition.length} competitions`,
+      `Others: ${background.experience.others.length} activities`
+    ].filter(Boolean); // 过滤空字符串
+
+    return parts.join('. ');
+  }
+
+  /**
+   * 生成降级向量 - 当向量API失败时使用
+   * 基于数值特征生成一个简单的向量表示
+   * @param background 用户背景信息
+   * @returns 降级向量
+   */
+  private static generateFallbackVector(background: UserBackground): number[] {
+    const vector: number[] = [];
+    
+    // 院校等级向量化 (0-4 -> 0.0-1.0)
+    const tierMap: Record<string, number> = {
+      'Tier 0': 1.0,
+      'Tier 1': 0.8,
+      'Tier 2': 0.6,
+      'Tier 3': 0.4,
+      'Tier 4': 0.2
+    };
+    vector.push(tierMap[background.academic.universityTier] || 0.2);
+    
+    // GPA标准化 (转换为0-1范围)
+    const gpaScore = Math.min(background.academic.gpa / (background.academic.gpaScale === 100 ? 100 : background.academic.gpaScale), 1.0);
+    vector.push(gpaScore);
+    
+    // 语言成绩标准化
+    if (background.language) {
+      const maxScore = background.language.type === 'TOEFL' ? 120 : 9;
+      const languageScore = background.language.total / maxScore;
+      vector.push(languageScore);
+    } else {
+      vector.push(0.0);
+    }
+    
+    // 标准化考试成绩
+    let testScore = 0.0;
+    if (background.standardTests?.gre) {
+      testScore = background.standardTests.gre.total / 340; // GRE满分340
+    } else if (background.standardTests?.gmat) {
+      testScore = background.standardTests.gmat.total / 800; // GMAT满分800
+    }
+    vector.push(testScore);
+    
+    // 经历数量标准化
+    const maxExperiences = 10; // 假设最大经历数量为10
+    const researchScore = Math.min(background.experience.research.length / maxExperiences, 1.0);
+    const internshipScore = Math.min(background.experience.internship.length / maxExperiences, 1.0);
+    const competitionScore = Math.min(background.experience.competition.length / maxExperiences, 1.0);
+    
+    vector.push(researchScore);
+    vector.push(internshipScore);
+    vector.push(competitionScore);
+    
+    // 填充到固定长度 (确保向量长度一致)
+    const targetLength = 64; // 目标向量长度
+    while (vector.length < targetLength) {
+      vector.push(0.0);
+    }
+    
+    // 如果超过目标长度，截断
+    return vector.slice(0, targetLength);
   }
 
   /**
@@ -159,7 +295,7 @@ ${prompt}
 
 标准化考试：${background.standardTests?.gre ? `GRE: ${background.standardTests.gre.total}` : background.standardTests?.gmat ? `GMAT: ${background.standardTests.gmat.total}` : '未提供'}
 
-申请意向：${background.applicationIntent.degree} in ${background.applicationIntent.majors.join(', ')}
+申请意向：${background.applicationIntent.degree} in ${background.applicationIntent.majors.join(', ')} at ${background.applicationIntent.countries.join(', ')}
 
 科研经历：${background.experience.research.length} 项
 实习经历：${background.experience.internship.length} 项
@@ -277,7 +413,7 @@ ${prompt}
 
 标准化考试：${background.standardTests?.gre ? `GRE: ${background.standardTests.gre.total}` : background.standardTests?.gmat ? `GMAT: ${background.standardTests.gmat.total}` : '未提供'}
 
-申请意向：${background.applicationIntent.degree} in ${background.applicationIntent.majors.join(', ')}
+申请意向：${background.applicationIntent.degree} in ${background.applicationIntent.majors.join(', ')} at ${background.applicationIntent.countries.join(', ')}
 
 科研经历：${background.experience.research.length} 项
 实习经历：${background.experience.internship.length} 项
@@ -438,5 +574,63 @@ ${prompt}
 在经验积累方面，建议增加科研项目参与，提升实习质量，参加相关竞赛，丰富个人背景。
 
 总体而言，建议您按照时间轴逐步提升各项指标，重点关注语言成绩和科研经历的提升，同时提前准备申请材料，确保申请过程的顺利进行。`;
+  }
+
+  /**
+   * 并行生成所有文本分析
+   * 使用 Promise.allSettled 并发处理所有文本生成，内置降级逻辑
+   * @param background 用户背景信息
+   * @returns 包含所有文本分析的对象
+   */
+  static async generateAllTextAnalyses(background: UserBackground): Promise<{
+    strengths: string;
+    weaknesses: string;
+    summary: string;
+    strategySummary: string;
+  }> {
+    // 定义所有需要生成的文本类型及其对应的生成函数
+    const textGenerators = [
+      {
+        key: 'strengths' as const,
+        generator: () => this.generateStrengths(background),
+        fallback: () => this.getFallbackStrengths(background)
+      },
+      {
+        key: 'weaknesses' as const,
+        generator: () => this.generateWeaknesses(background),
+        fallback: () => this.getFallbackWeaknesses(background)
+      },
+      {
+        key: 'summary' as const,
+        generator: () => this.generateSummary(background),
+        fallback: () => this.getFallbackSummary(background)
+      },
+      {
+        key: 'strategySummary' as const,
+        generator: () => this.generateStrategySummary(background),
+        fallback: () => this.getFallbackStrategySummary(background)
+      }
+    ];
+
+    // 并发执行所有文本生成
+    const results = await Promise.allSettled(
+      textGenerators.map(async ({ generator }) => generator())
+    );
+
+    // 处理结果，对失败的使用降级函数
+    const finalResults: any = {};
+    
+    results.forEach((result, index) => {
+      const { key, fallback } = textGenerators[index];
+      
+      if (result.status === 'fulfilled') {
+        finalResults[key] = result.value;
+      } else {
+        console.warn(`Failed to generate ${key}, using fallback:`, result.reason);
+        finalResults[key] = fallback();
+      }
+    });
+
+    return finalResults;
   }
 }

@@ -124,3 +124,7 @@ npm test -- --testPathPatterns=supabaseService.test.ts
 2. **动态阈值**: 根据数据分布动态调整相似度阈值
 3. **混合搜索**: 结合向量搜索和传统SQL查询
 4. **结果排序**: 支持多种排序策略
+
+
+
+
