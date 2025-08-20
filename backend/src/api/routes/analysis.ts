@@ -107,27 +107,40 @@ router.post('/analyze', async (req, res) => {
     console.log('📊 计算雷达图分数...');
     const radarChartScores = ScoringService.calculateRadarChartScores(userBackground);
     
-    // 2. 获取相似案例
-    console.log('🔍 查找相似案例...');
-    let similarCases = [];
-    try {
-      const cases = await SupabaseService.testConnection();
-      if (cases && cases.length > 0) {
-        similarCases = SimilarityService.findTopSimilarCases(userBackground, cases, 10);
-        console.log(`✅ 找到 ${similarCases.length} 个相似案例`);
-      } else {
-        console.log('⚠️ 未找到案例数据，使用模拟数据');
-        similarCases = [
-          {
-            caseId: "case_001",
-            similarity: 0.87,
-            admissionResult: { university: "卡内基梅隆大学", major: "计算机科学" },
-            background: { gpa: 3.8, language: { type: "TOEFL", score: 105 }, universityTier: "Tier 0" }
-          }
-        ];
-      }
-    } catch (error) {
-      console.log('⚠️ Supabase 连接失败，使用模拟案例数据');
+    // 2. 生成用户向量，并行获取相似案例与文本分析
+    console.log('🧮 生成用户向量...');
+    const userVector = await GemmaService.generateVectorEmbedding(userBackground);
+
+    console.log('🔀 并行获取相似案例与生成文本...');
+    const [casesResult, textsResult] = await Promise.allSettled([
+      SupabaseService.findSimilarCases(userVector, 10),
+      GemmaService.generateAllTextAnalyses(userBackground)
+    ]);
+
+    let similarCases = [] as Array<{
+      caseId: string;
+      similarity: number;
+      admissionResult: { university: string; major: string };
+      background: { gpa: number; language: { type: string; score: number }; universityTier: string };
+    }>;
+
+    if (casesResult.status === 'fulfilled' && Array.isArray(casesResult.value) && casesResult.value.length > 0) {
+      const matchedCases: any[] = casesResult.value as any[];
+      similarCases = matchedCases.map((c) => ({
+        caseId: String(c.id),
+        similarity: SimilarityService.calculateOverallSimilarity(userBackground, c as any),
+        admissionResult: { university: c.admitted_university, major: c.admitted_program },
+        background: {
+          gpa: c.gpa_4_scale,
+          language: { type: c.language_test_type, score: c.language_total_score },
+          universityTier: c.undergraduate_university_tier
+        }
+      }));
+      similarCases.sort((a, b) => b.similarity - a.similarity);
+      similarCases = similarCases.slice(0, 10);
+      console.log(`✅ 找到 ${similarCases.length} 个相似案例`);
+    } else {
+      console.log('⚠️ 相似案例查询失败或无数据，使用模拟案例数据');
       similarCases = [
         {
           caseId: "case_001",
@@ -137,10 +150,8 @@ router.post('/analyze', async (req, res) => {
         }
       ];
     }
-    
-    // 3. 生成 AI 文本内容
-    console.log('🤖 生成 AI 文本内容...');
-    const texts = await GemmaService.generateAllTextAnalyses(userBackground);
+
+    const texts = textsResult.status === 'fulfilled' ? textsResult.value : await GemmaService.generateAllTextAnalyses(userBackground);
     
     // 4. 生成学校推荐
     console.log('🎓 生成学校推荐...');
